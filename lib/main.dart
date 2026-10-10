@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 
 void main() => runApp(const AIImageApp());
 
@@ -31,38 +29,31 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _promptController = TextEditingController();
-  List<String> _imageUrls = [];
+  String? _imageUrl;
   bool _isLoading = false;
 
   Future<void> _generateImages() async {
     if (_promptController.text.isEmpty) return;
-    
+
     setState(() {
       _isLoading = true;
-      _imageUrls.clear();
+      _imageUrl = null;
     });
 
-    try {
-      // UPDATED IP ADDRESS HERE
-      final response = await http.post(
-        Uri.parse('http://192.168.100.123:8000/generate'), 
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'prompt': _promptController.text}),
-      );
+    // Dart equivalent of our C++ prompt enhancement
+    final enhancedPrompt = "${_promptController.text}, highly detailed, 8k resolution, cinematic lighting";
+    final encodedPrompt = Uri.encodeComponent(enhancedPrompt);
+    
+    // Direct URL to the free AI API
+    final url = "https://image.pollinations.ai/prompt/$encodedPrompt?width=512&height=512&nologo=true";
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        setState(() {
-          _imageUrls.add(data['image_url']);
-        });
-      }
-    } catch (e) {
-      debugPrint("Error: $e");
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
+    // Simulate a slight delay so the UI shows the loader nicely
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    setState(() {
+      _imageUrl = url;
+      _isLoading = false;
+    });
   }
 
   @override
@@ -119,10 +110,24 @@ class _HomeScreenState extends State<HomeScreen> {
                 : const Text("Generate Image", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             ),
             const SizedBox(height: 30),
-            if (_imageUrls.isNotEmpty)
+            if (_imageUrl != null)
               ClipRRect(
                 borderRadius: BorderRadius.circular(15),
-                child: Image.network(_imageUrls.first, fit: BoxFit.cover),
+                child: Image.network(
+                  _imageUrl!,
+                  fit: BoxFit.cover,
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Container(
+                      height: 300,
+                      color: const Color(0xFF1E1E1E),
+                      child: const Center(child: CircularProgressIndicator()),
+                    );
+                  },
+                  errorBuilder: (context, error, stackTrace) {
+                    return const Text("Failed to load image. Check your internet.");
+                  },
+                ),
               ),
           ],
         ),

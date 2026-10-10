@@ -1,4 +1,4 @@
-name: ai_image_app
+name: ai_image_generator
 description: A premium AI Image Generator.
 publish_to: 'none'
 version: 1.0.0+1
@@ -9,4 +9,3 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  http: ^1.1.0
